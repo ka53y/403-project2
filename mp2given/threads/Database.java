@@ -5,12 +5,28 @@ public class Database
 {
    //MP2 create any variables that you need for implementation of the methods
    //of this class
-
    //Database
    //Initializes Database variables
+private Semaphore db;
+private Semaphore mut;
+private Semaphore wMut;
+private Lock wLk;
+boolean dbR;
+boolean dbW;
+private int wWait;
+private Condition wCon;
+int rC;
    public Database()
    {
      //MP2
+db = new Semaphore("Semaphore Database",1);
+mut = new Semaphore("Semaphore mutex", 1);
+wMut = new Semaphore("Semaphore writer mutex", 1);
+wLk = new Lock("lock writer");
+wWait = 0;
+rC = 0;
+wCon = new Condition("condition writer");
+
    }
 
    //napping()
@@ -30,7 +46,26 @@ public class Database
    public int startRead()
    {
       //MP2
-      return 0;
+int x; 
+int y;
+wMut.P();
+y = wWait;
+wMut.V();
+i(y>0){
+wLk.acquire();
+wCon.wait(wLk);
+wLk.release();
+
+}
+mut.P();
+rC++;
+x = rC;
+if(readerCount==1){
+db.P();
+}
+mut.V();
+
+      return x;
    }
 
    //endRead()
@@ -40,7 +75,16 @@ public class Database
    public int endRead()
    {
       //MP2
-      return 0;
+int x; 
+mut.P();
+rC--;
+x=rC;
+if(rC==0){
+db.V();
+}     
+mut.V();
+
+ return x;
    }
 
    //startWrite()
@@ -50,7 +94,20 @@ public class Database
    public void startWrite()
    {
       //MP2
-
+int y;
+wMut.P();
+wWait++;
+wMut.V();
+db.P();
+wMut.P();
+wWait--;
+y=wWait;
+wMut.V();
+if(y==0){
+wLk.acquire();
+wCon.broadcast(wLk);
+wLk.release();
+}
    }
    
    //endWrite()
@@ -59,5 +116,6 @@ public class Database
    public void endWrite()
    {
       //MP2
+      db.V();
    }
 }
